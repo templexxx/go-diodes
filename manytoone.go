@@ -1,18 +1,41 @@
 package diodes
 
 import (
-	"log"
 	"sync/atomic"
 	"unsafe"
 )
 
+// Alerter is used to report how many values were overwritten since the
+// last write.
+type Alerter interface {
+	Alert(missed int)
+}
+
+// AlertFunc type is an adapter to allow the use of ordinary functions as
+// Alert handlers.
+type AlertFunc func(missed int)
+
+// Alert calls f(missed)
+func (f AlertFunc) Alert(missed int) {
+	f(missed)
+}
+
+type bucket struct {
+	data unsafe.Pointer
+	seq  uint64 // seq is the recorded write index at the time of writing
+}
+
 // ManyToOne diode is optimal for many writers (go-routines B-n) and a single
 // reader (go-routine A). It is not thread safe for multiple readers.
 type ManyToOne struct {
+	_padding0  [64]uint8 // Add padding avoiding polluting CPU Cache Line.
 	writeIndex uint64
-	buffer     []unsafe.Pointer
+	_padding1  [64]uint8
 	readIndex  uint64
-	alerter    Alerter
+	_padding2  [64]uint8
+
+	buffer  []unsafe.Pointer
+	alerter Alerter
 }
 
 // NewManyToOne creates a new diode (ring buffer). The ManyToOne diode
@@ -38,7 +61,7 @@ func NewManyToOne(size int, alerter Alerter) *ManyToOne {
 }
 
 // Set sets the data in the next slot of the ring buffer.
-func (d *ManyToOne) Set(data GenericDataType) {
+func (d *ManyToOne) Set(data unsafe.Pointer) {
 	for {
 		writeIndex := atomic.AddUint64(&d.writeIndex, 1)
 		idx := writeIndex % uint64(len(d.buffer))
@@ -47,7 +70,7 @@ func (d *ManyToOne) Set(data GenericDataType) {
 		if old != nil &&
 			(*bucket)(old) != nil &&
 			(*bucket)(old).seq > writeIndex-uint64(len(d.buffer)) {
-			log.Println("Diode set collision: consider using a larger diode")
+			//log.Println("Diode set collision: consider using a larger diode")
 			continue
 		}
 
@@ -57,7 +80,7 @@ func (d *ManyToOne) Set(data GenericDataType) {
 		}
 
 		if !atomic.CompareAndSwapPointer(&d.buffer[idx], old, unsafe.Pointer(newBucket)) {
-			log.Println("Diode set collision: consider using a larger diode")
+			//log.Println("Diode set collision: consider using a larger diode")
 			continue
 		}
 
@@ -67,7 +90,7 @@ func (d *ManyToOne) Set(data GenericDataType) {
 
 // TryNext will attempt to read from the next slot of the ring buffer.
 // If there is not data available, it will return (nil, false).
-func (d *ManyToOne) TryNext() (data GenericDataType, ok bool) {
+func (d *ManyToOne) TryNext() (data unsafe.Pointer, ok bool) {
 	// Read a value from the ring buffer based on the readIndex.
 	idx := d.readIndex % uint64(len(d.buffer))
 	result := (*bucket)(atomic.SwapPointer(&d.buffer[idx], nil))
@@ -124,7 +147,6 @@ func (d *ManyToOne) TryNext() (data GenericDataType, ok bool) {
 	// Only increment read index if a regular read occurred (where seq was
 	// equal to readIndex) or a value was read that caused a fast forward
 	// (where seq was greater than readIndex).
-	//
 	d.readIndex++
 	return result.data, true
 }

@@ -1,6 +1,6 @@
 ![diode][diode-logo]
 
-[![GoDoc][go-doc-badge]][go-doc] [![travis][travis-badge]][travis]
+[![GoDoc][go-doc-badge]][go-doc] 
 
 Diodes are ring buffers manipulated via atomics.
 
@@ -12,8 +12,18 @@ In other words, invoking `Set()` on a diode never blocks.
 ### Installation
 
 ```bash
-go get code.cloudfoundry.org/go-diodes
+go get -u github.com/templexxx/go-diodes
 ```
+
+### Changes
+
+#### April 22, 2020
+
+- Add go.mod 
+- Use GitHub Action to test
+- Comment the log print in ManyToOne
+- Delete OneToOne
+- Delete Waiter & Poller
 
 ### Example: Basic Use
 
@@ -155,5 +165,3 @@ encounter this issue.
 [diode-logo]:   https://raw.githubusercontent.com/cloudfoundry/go-diodes/gh-pages/diode-logo.png
 [go-doc-badge]: https://godoc.org/code.cloudfoundry.org/go-diodes?status.svg
 [go-doc]:       https://godoc.org/code.cloudfoundry.org/go-diodes
-[travis-badge]: https://travis-ci.org/cloudfoundry/go-diodes.svg?branch=master
-[travis]:       https://travis-ci.org/cloudfoundry/go-diodes?branch=master

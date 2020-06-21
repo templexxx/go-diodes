@@ -28,11 +28,11 @@ type bucket struct {
 // ManyToOne diode is optimal for many writers (go-routines B-n) and a single
 // reader (go-routine A). It is not thread safe for multiple readers.
 type ManyToOne struct {
-	_padding0  [64]uint8 // Add padding avoiding polluting CPU Cache Line.
+	_padding0  [64 * 2]uint8 // Add padding avoiding polluting CPU Cache Line.
 	writeIndex uint64
-	_padding1  [64]uint8
+	_padding1  [64 * 2]uint8
 	readIndex  uint64
-	_padding2  [64]uint8
+	_padding2  [64 * 2]uint8
 
 	buffer  []unsafe.Pointer
 	alerter Alerter
